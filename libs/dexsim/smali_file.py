@@ -48,7 +48,8 @@ class SmaliFile:
             idx = line.rindex(' ')
             self.fields.append(SmaliField(self.class_name, line[idx + 1:]))
 
-        method_regex = '\.method [%s\s-]+ [^\s]+' % self.accessor_regex
+        #not all methods has accessor flag,  2e7fa544122cc77faefed81dfbf49e1f  .method parseData(Ljava/lang/String;)V
+        method_regex = '\.method .*?(?=\n)'
         p = re.compile(method_regex)
         for i in p.finditer(self.content):
             line = i.group()
@@ -67,7 +68,7 @@ class SmaliFile:
                     body))
 
     def build_method_regex(self, mtd_sign):
-        return '\.method [%s\s-]+%s((?!\.end method)[.\s\S])*.end method' % (self.accessor_regex, re.escape(mtd_sign))
+        return '\.method .*?%s((?!\.end method)[.\s\S])*.end method' % (re.escape(mtd_sign))
 
     def update(self):
         '''

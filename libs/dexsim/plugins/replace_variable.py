@@ -15,11 +15,15 @@ class ReplaceVariable(Plugin):
     name = "ReplaceVariable"
     version = '0.0.2'
 
+    all_array_data = {}
+
     def __init__(self, driver, methods, smali_files):
         Plugin.__init__(self, driver, methods, smali_files)
 
     def run(self):
         print('run Plugin: %s' % self.name, end=' -> ')
+        self.init_array_data()
+        self.__process_array()
         self.__process_string()
         self.__process_int()
         self.__process_stringbuilder_init()
@@ -159,3 +163,64 @@ class ReplaceVariable(Plugin):
                 self.make_changes = True
 
         self.smali_files_update()
+
+    def init_array_data(self):
+        if ReplaceVariable.all_array_data:
+            return
+
+        """
+        const/16 v0, 0x5a
+        new-array v0, v0, [B
+        fill-array-data v0, :array_1ca
+        sput-object v0, Lcom/mopub/IkugPWKWxdXGRvZoacqSF;->JSCRIPT:[B
+
+        1) get all array_data
+        2) build the relationship between clsname, fieldname, fieldtype and array data
+        """
+        prog = re.compile(Plugin.FILL_ARRAY_DATA + Plugin.SPUT_OBJECT)
+
+        for mtd in self.methods:
+            for i in prog.finditer(mtd.body):
+                #varname, clsname, fieldname, fieldtype
+                objInfo = i.groups()
+                aryInfo = self.get_array_data(i.group(), mtd.body)
+
+                #clsname,fieldname,fieldtype as the key
+                ReplaceVariable.all_array_data[''.join(objInfo[1:])] = aryInfo['arraydata']
+
+    def __process_array(self):
+        """
+        md5: 2e7fa544122cc77faefed81dfbf49e1f
+
+    class1:
+        .line 40
+        const/16 v0, 0x5a
+        new-array v0, v0, [B
+        fill-array-data v0, :array_1ca
+        sput-object v0, Lcom/mopub/IkugPWKWxdXGRvZoacqSF;->JSCRIPT:[B
+
+    class2:
+        sget-object v1, Lcom/mopub/IkugPWKWxdXGRvZoacqSF;->JSCRIPT:[B
+        invoke-static {v1}, Lcom/mopub/JEIANKLKYTdmikJkyhyAs;->millis([B)Ljava/lang/String;
+
+    all the array_data should be already stored by init_array_data(), and now will be passed and called
+
+        :return:
+        """
+        p = re.compile(Plugin.SGET_OBJECT  + '\s+' + Plugin.INVOKE_STATIC_NORMAL + '\s+' + Plugin.MOVE_RESULT_OBJECT)
+
+        self.json_list = []
+        self.target_contexts = {}
+        for mtd in self.methods:
+            for i in p.finditer(mtd.body):
+                #varname, clsname, fieldname, fieldtype, paramsname, staticclsname, mtdname, paramstype, rtnname
+                info = i.groups()
+                if info[3] != info[-2]: #fieldtype and paramstype not match
+                    continue
+
+                line = i.group()
+                args = ['%s:%s'%(info[-2], str(ReplaceVariable.all_array_data[''.join(info[1:4])]))]
+
+                json_item = self.get_json_item(info[-4][1:].replace('/', '.'), info[-3], args)
+                self.append_json_item(json_item, mtd, line, info[-1])
+        self.optimize()
