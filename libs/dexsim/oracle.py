@@ -44,6 +44,7 @@ class Oracle:
         运行插件，解密，更新内容，直到没有再可以更新的代码，则停止
         '''
         plugins = self.plugin_manager.get_plugins()
+        self.plugin_manager.get_plugin('STAT').run()
 
         flag = True
         while flag:

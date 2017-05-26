@@ -296,6 +296,7 @@ class Plugin(object):
                     # It's not a string.
                     if 'null' == outputs[key][1]:
                         continue
+                    print('found sth: ', outputs[key][1])
                     item[0].body = old_body.replace(target_context, new_context)
                     item[0].modified = True
                     self.make_changes = True
@@ -337,6 +338,7 @@ class Plugin(object):
                     # It's not a string.
                     if 'null' == outputs[key][1]:
                         continue
+                    print('found sth: ', outputs[key][1])
                     item[0].body = old_body.replace(target_context, new_context)
                     item[0].modified = True
                     self.make_changes = True

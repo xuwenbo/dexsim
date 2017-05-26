@@ -54,11 +54,13 @@ class Driver:
 
         try:
             output_file = open(output_file.name, encoding='utf-8')
+            print(output_file.name)
             s = json.load(output_file)
             output_file.close()
-            os.unlink(output_file.name)
+            #os.unlink(output_file.name)
             return s
-        except json.decoder.JSONDecodeError:
+        #except json.decoder.JSONDecodeError:
+        except:
             self.adb.run_cmd(['pull', '/data/local/od-exception.txt', 'exception.txt'])
             self.adb.shell_command(['rm', '/data/local/od-exception.txt'])
             return ''
